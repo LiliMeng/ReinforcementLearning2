@@ -9,6 +9,7 @@ import ReinforcementLearning.QLearning;
 import ReinforcementLearning.LUQTable;
 import ReinforcementLearning.RobotState;
 import ReinforcementLearning.Enemy;
+import ReinforcementLearning.GravPoint;
 
 import robocode.*; 
  
@@ -24,7 +25,6 @@ public class mmRobot extends AdvancedRobot
 	private static LUQTable qtable = null;
 	private static QLearning learner = null; 
 	private double firePower; 
-	private int direction = 1; 
 	private int isHitWall = 0; 
 	private int isHitByBullet = 0; 
 	 
@@ -36,21 +36,23 @@ public class mmRobot extends AdvancedRobot
 	
 	private static final double rewardForHitRobot = 0; 
 	
-	private static final double rewardForBulletHit = 5;
-	private static final double rewardForHitByBullet = -5; 
+	private static final double rewardForBulletHit = 3;
+	private static final double rewardForHitByBullet = -2; 
  
-	private static final double rewardForHitWall = -3; 
+	private static final double rewardForHitWall = -2; 
 	
-	FileWriter fw;
 	
 	public void run() 
 	{
-		
-		qtable = new LUQTable(); 
+		if(qtable==null)
+		{
+			qtable = new LUQTable();
+			learner = new QLearning(qtable); 
+		}
 		loadData();
-		learner = new QLearning(qtable); 
 		
 		enemy = new Enemy(); 
+		
 	    enemy.distance = 100000; 
 	 
 	    setColors(Color.green, Color.white, Color.red); 
@@ -63,15 +65,16 @@ public class mmRobot extends AdvancedRobot
 	    { 
 	      countRound++;
 	      
-	      if(countRound>20000000)
+	      
+	      if(countRound>300)
 	      {
 	    	  out.println("Before explorationRate"+learner.ExplorationRate);
-	    	  learner.setExploitationRate(0);
+	    	  learner.setExploitationRate(0.01);
 	    	  out.println("After explorationRate"+learner.ExplorationRate);
 	      }
 	      
 	      radarMovement(); 
-	      aimAndFire();
+	      //aimAndFire();
 	      performLearning(); 
 	      execute(); 
 	    } 
@@ -90,6 +93,18 @@ public class mmRobot extends AdvancedRobot
 	 
 	    switch (action) 
 	    { 
+	    	case RobotAction.AntiGravityMove:
+	    		setupAntiGravityMove(-1000);
+	    		break;
+	    	case RobotAction.GravityMove:
+	    		setupAntiGravityMove(1000);
+	    		break;
+	    	case RobotAction.AimAndFire:
+	    		aimAndFire();
+	    		break;
+	 		
+	    
+	    /*
 	      case RobotAction.Ahead: 
 	        setAhead(RobotAction.RobotMoveDistance); 
 	        break; 
@@ -104,9 +119,7 @@ public class mmRobot extends AdvancedRobot
 	        setTurnRight(RobotAction.RobotTurnDegree);
 	        setAhead(RobotAction.RobotMoveDistance); 
 	        break; 
-	     // case RobotAction.Fire:
-	    //	this.aimAndFire();
-	    //	break;
+	   */
 	    } 
 	  } 
 	 
@@ -116,7 +129,7 @@ public class mmRobot extends AdvancedRobot
 	    int enemyDistance = RobotState.getEnemyDistance(enemy.distance); 
 	    int enemyBearing = RobotState.getEnemyBearing(enemy.bearing); 
 	    out.println("State(" + heading + ", " + enemyDistance + ", " + enemyBearing + ", " + isHitWall + ", " + isHitByBullet + ")"); 
-	    int state = RobotState.mapping[heading][enemyDistance][enemyBearing][isHitWall][isHitByBullet]; 
+	    int state = RobotState.mapping[heading][enemyDistance];//[enemyBearing][isHitWall][isHitByBullet]; 
 	    return state; 
 	  } 
 	 
@@ -160,8 +173,83 @@ public class mmRobot extends AdvancedRobot
 	      {
 	        setFire(firePower); 
 	      } 
-	  } 
-	 
+	  }
+	  
+	  void setupAntiGravityMove(double pForce)
+	  {
+		  double xforce = 0;
+		  double yforce = 0;
+		  double force;
+		  double ang;
+		 
+		  GravPoint p;
+		  
+		  p= new GravPoint(enemy.x, enemy.y, pForce);
+		  force = p.power/Math.pow(getRange(getX(), getY(),p.x, p.y), 2);
+		  
+		  //Find the bearing from the point to us
+		  ang = NormaliseBearing(Math.PI/2-Math.atan2(getY()-p.y, getX()-p.x));
+		  
+		  //Add the components of this force to the total force in their respective directions
+		  xforce+=Math.sin(ang)*force;
+		  yforce+=Math.cos(ang)*force;
+		  
+		  /*
+		   * The following four lines add wall avoidance. They will only affect us if the 
+		   * bot is close to the walls due to the force from the walls decreasing at a power 3
+		   */
+		  xforce += 5000 / Math.pow(getRange(getX(), getY(), getBattleFieldWidth(),getY()),3);
+		  xforce -= 5000 / Math.pow(getRange(getX(), getY(), 0, getY()),3);
+		  yforce += 5000 / Math.pow(getRange(getX(),getY(), getX(), getBattleFieldHeight()),3);
+		  yforce -= 5000 / Math.pow(getRange(getX(), getY(), getX(), 0), 3);
+		  
+		  //Move in the direction of our resolved force
+		  goTo(getX()-xforce, getY()-yforce);
+	  }
+	  
+	  /**
+	   * Move toward (x, y) on next execute()
+	   * @param x: x coordinate
+	   * @param y: y coordinate
+	   */
+      void goTo(double x, double y)
+      {
+    	  double dist = 40;
+    	  double angle = Math.toDegrees(absbearing(getX(), getY(), x, y));
+    	  double r = turnTo(angle);
+    	  out.println("turning angle r" + r);
+    	  setAhead(dist*r);
+      }
+	  
+      /**
+       * Turns the shortest angle possible to come to a heading, then returns the direction
+       * (1 or -1) that the bot needs to move in
+       * @param angle: The desired new heading
+       * @return Our new direction, represented as 1 or -1
+       */
+	  int turnTo(double angle)
+	  {
+		  double ang;
+		  int dir;
+		  ang = NormaliseBearing(getHeading() - angle);
+		  if(ang>90)
+		  {
+			  ang -= 180;
+			  dir = -1;
+		  }
+		  else if (ang<-90)
+		  {
+			  ang +=180;
+			  dir = -1;
+		  }
+		  else
+		  {
+			  dir = 1;
+		  }
+		  setTurnLeft(ang);
+		  return dir;
+	  }
+
 	  double NormaliseBearing(double ang) { 
 	    if (ang > PI) 
 	      ang -= 2*PI; 
