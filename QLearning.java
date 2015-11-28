@@ -7,17 +7,12 @@ import java.util.Random;
 public class QLearning
 {
 	public static final double LearningRate = 0.1;
-	public static final double DiscountRate = 0.99;
+	public static final double DiscountRate = 0.9;
 	public double ExplorationRate = 0.8;
 	private int lastState;
 	private int lastAction;
 	private LUQTable Qtable;
 
-	public double setExploitationRate(double value)
-	{
-		ExplorationRate=value;
-		return ExplorationRate;
-	}
 	public QLearning(LUQTable table)
 	{
 		this.Qtable = table;
@@ -35,24 +30,4 @@ public class QLearning
 		lastState = state;
 		lastAction = action;
 	}
-	
-	
-	public int selectAction(int state){
-
-		double thres = Math.random();
-		
-		int actionIndex = 0;
-		
-		if (thres<ExplorationRate)
-		{//randomly select one action from action(0,1,2,3)
-			Random ran = new Random();
-			actionIndex = ran.nextInt(((RobotAction.numRobotActions-1 - 0) + 1));
-		}
-		else
-		{//e-greedy
-			actionIndex=Qtable.bestAction(state);
-		}
-		return actionIndex;
-	}
-   
 }
