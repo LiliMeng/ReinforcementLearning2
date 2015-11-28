@@ -8,7 +8,7 @@ public class QLearning
 {
 	public static final double LearningRate = 0.1;
 	public static final double DiscountRate = 0.99;
-	public double ExplorationRate = 0.01;
+	public double ExplorationRate = 0.8;
 	private int lastState;
 	private int lastAction;
 	private LUQTable Qtable;
