@@ -3,6 +3,7 @@ package ReinforcementLearning;
 import java.awt.*; 
 import java.awt.geom.*; 
 import java.io.*;
+import java.util.Random;
 
 import ReinforcementLearning.RobotAction;
 import ReinforcementLearning.QLearning;
@@ -22,35 +23,34 @@ public class mmRobot extends AdvancedRobot
 
 	public static final double PI = Math.PI;
 	private Enemy enemy;
-	private static LUQTable qtable = null;
-	private static QLearning learner = null; 
+	private static LUQTable qtable= new LUQTable();
+	private static QLearning learner; 
 	private double firePower; 
 	private int isHitWall = 0; 
 	private int isHitByBullet = 0; 
 	 
+	private double explorationRate=0.8;
+	
 	double accumuReward=0.0;
 	double currentReward=0.0;
 	
 	private static final double rewardForWin = 10;
 	private static final double rewardForDeath = -10; 
 	
-	private static final double rewardForHitRobot = 0; 
+	private static final double rewardForHitRobot = -2; 
 	
 	private static final double rewardForBulletHit = 3;
 	private static final double rewardForHitByBullet = -2; 
- 
+	
 	private static final double rewardForHitWall = -2; 
+	
 	
 	
 	public void run() 
 	{
-		if(qtable==null)
-		{
-			qtable = new LUQTable();
-			learner = new QLearning(qtable); 
-		}
+		//qtable = new LUQTable();
 		loadData();
-		
+		learner = new QLearning(qtable); 
 		enemy = new Enemy(); 
 		
 	    enemy.distance = 100000; 
@@ -59,18 +59,15 @@ public class mmRobot extends AdvancedRobot
 	    setAdjustGunForRobotTurn(true); 
 	    setAdjustRadarForGunTurn(true); 
 	    turnRadarRightRadians(2 * PI); 
-	    int countRound=0;
 	    
 	    while (true) 
 	    { 
-	      countRound++;
-	      
-	      
-	      if(countRound>300)
+	    	
+	      if(getRoundNum()>500)
 	      {
-	    	  out.println("Before explorationRate"+learner.ExplorationRate);
-	    	  learner.setExploitationRate(0.01);
-	    	  out.println("After explorationRate"+learner.ExplorationRate);
+	    	  out.println("Before explorationRate"+this.explorationRate);
+	    	  explorationRate=0.01;
+	    	  out.println("After explorationRate"+this.explorationRate);
 	      }
 	      
 	      radarMovement(); 
@@ -82,8 +79,10 @@ public class mmRobot extends AdvancedRobot
 	
 	  private void performLearning() 
 	  { 
+
 	    int state = getState(); 
-	    int action = learner.selectAction(state); 
+	    
+	    int action = this.selectAction(state); 
 	    out.println("RobotAction selected: " + action); 
 	    learner.learn(state, action, currentReward); 
 	    accumuReward+=currentReward;
@@ -122,6 +121,25 @@ public class mmRobot extends AdvancedRobot
 	   */
 	    } 
 	  } 
+	  
+		
+		public int selectAction(int state){
+
+			double thres = Math.random();
+			
+			int actionIndex = 0;
+			
+			if (thres<explorationRate)
+			{//randomly select one action from action(0,1,2,3)
+				Random ran = new Random();
+				actionIndex = ran.nextInt(((RobotAction.numRobotActions-1 - 0) + 1));
+			}
+			else
+			{//e-greedy
+				actionIndex=qtable.bestAction(state);
+			}
+			return actionIndex;
+		}
 	 
 	  private int getState() 
 	  { 
@@ -400,7 +418,7 @@ public class mmRobot extends AdvancedRobot
 		    try 
 		    { 
 		      w = new PrintStream(new RobocodeFileOutputStream("/home/lili/workspace/EECE592/ReinforcementLearning/src/ReinforcementLearning/survival.xlsx", true)); 
-		      w.println(accumuReward+" "+getRoundNum()+"\t"+winningRound+" "+1); 
+		      w.println(accumuReward+" "+getRoundNum()+"\t"+winningRound+" "+1+" "+this.explorationRate); 
 		      if (w.checkError()) 
 		        System.out.println("Could not save the data!"); 
 		      w.close(); 
@@ -436,7 +454,7 @@ public class mmRobot extends AdvancedRobot
 		    try 
 		    { 
 		      w = new PrintStream(new RobocodeFileOutputStream("/home/lili/workspace/EECE592/ReinforcementLearning/src/ReinforcementLearning/survival.xlsx", true)); 
-		      w.println(accumuReward+" "+getRoundNum()+"\t"+losingRound+" "+0); 
+		      w.println(accumuReward+" "+getRoundNum()+"\t"+losingRound+" "+0+" "+this.explorationRate); 
 		      if (w.checkError()) 
 		        System.out.println("Could not save the data!"); 
 		      w.close(); 
