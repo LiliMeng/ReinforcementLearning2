@@ -23,7 +23,7 @@ public class mmRobot extends AdvancedRobot
 
 	public static final double PI = Math.PI;
 	private Enemy enemy;
-	private static LUQTable qtable= new LUQTable();
+	private static LUQTable qtable;
 	private static QLearning learner; 
 	private double firePower; 
 	private int isHitWall = 0; 
@@ -48,7 +48,7 @@ public class mmRobot extends AdvancedRobot
 	
 	public void run() 
 	{
-		//qtable = new LUQTable();
+		qtable = new LUQTable();
 		loadData();
 		learner = new QLearning(qtable); 
 		enemy = new Enemy(); 
