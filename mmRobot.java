@@ -29,7 +29,7 @@ public class mmRobot extends AdvancedRobot
 	private int isHitWall = 0; 
 	private int isHitByBullet = 0; 
 	 
-	private double explorationRate=0.8;
+	private double explorationRate=0.9;
 	
 	double accumuReward=0.0;
 	double currentReward=0.0;
@@ -47,13 +47,14 @@ public class mmRobot extends AdvancedRobot
 	
 	
 	public void run() 
-	{
+	{   
 		qtable = new LUQTable();
 		loadData();
 		learner = new QLearning(qtable); 
 		enemy = new Enemy(); 
 		
 	    enemy.distance = 100000; 
+	    accumuReward=0.0;
 	 
 	    setColors(Color.green, Color.white, Color.red); 
 	    setAdjustGunForRobotTurn(true); 
@@ -62,19 +63,26 @@ public class mmRobot extends AdvancedRobot
 	    
 	    while (true) 
 	    { 
-	    	
+	      
 	      if(getRoundNum()>500)
 	      {
 	    	  out.println("Before explorationRate"+this.explorationRate);
 	    	  explorationRate=0.01;
 	    	  out.println("After explorationRate"+this.explorationRate);
 	      }
+	      firePower = 400/enemy.distance;   
+	      if (firePower > 3)
+	      {
+	    	  firePower=3;
+	      }
+	      if (getGunHeat() == 0) {   
+	          setFire(firePower);   
+	        }  
 	      
 	      radarMovement(); 
-	      //aimAndFire();
-	      performLearning(); 
+	      performLearning();        
 	      execute(); 
-	    } 
+	    }
 	  } 
 	
 	  private void performLearning() 
@@ -170,10 +178,7 @@ public class mmRobot extends AdvancedRobot
 	 
 	  private void aimAndFire() 
 	  { 
-		 firePower = 400/enemy.distance; 
-	     if (firePower > 3) 
-	        firePower = 3; 
-		  
+	
 	    long time; 
 	    long nextTime; 
 	    Point2D.Double p; 
@@ -187,10 +192,6 @@ public class mmRobot extends AdvancedRobot
 	    double gunOffset = getGunHeadingRadians() - (Math.PI/2 - Math.atan2(p.y - getY(),p.x -  getX())); 
 	    setTurnGunLeftRadians(NormaliseBearing(gunOffset)); 
 	    
-	    if (getGunHeat() == 0) 
-	      {
-	        setFire(firePower); 
-	      } 
 	  }
 	  
 	  void setupAntiGravityMove(double pForce)
@@ -409,16 +410,18 @@ public class mmRobot extends AdvancedRobot
 		 //saveQTable();
 		saveData();
 		 
-		 //int state=RobotState.mapping[0][0][0][0][0];
+		 int state=RobotState.mapping[0][0];
 		 
-		 //int action =2;
-		// learner.learn(state, action, currentReward);
+		 int action =2;
+		 learner.learn(state, action, currentReward);
+		 
+		 int winningFlag=7;
 
 		 PrintStream w = null; 
 		    try 
 		    { 
 		      w = new PrintStream(new RobocodeFileOutputStream("/home/lili/workspace/EECE592/ReinforcementLearning/src/ReinforcementLearning/survival.xlsx", true)); 
-		      w.println(accumuReward+" "+getRoundNum()+"\t"+winningRound+" "+1+" "+this.explorationRate); 
+		      w.println(accumuReward+" "+getRoundNum()+"\t"+winningFlag+" "+" "+this.explorationRate); 
 		      if (w.checkError()) 
 		        System.out.println("Could not save the data!"); 
 		      w.close(); 
@@ -443,18 +446,19 @@ public class mmRobot extends AdvancedRobot
 
 	  public void onDeath(DeathEvent event) 
 	  { 
-		// int state=RobotState.mapping[0][0][0][0][0];
-		 //int action =2;
+		 int state=RobotState.mapping[0][0];
+		 int action =2;
 	     losingRound++;
 	     currentReward=rewardForDeath;
 	     //saveQTable();
 	     saveData();
 	    // learner.learn(state, action, currentReward);
+	     int losingFlag=5;
 	     PrintStream w = null; 
 		    try 
 		    { 
 		      w = new PrintStream(new RobocodeFileOutputStream("/home/lili/workspace/EECE592/ReinforcementLearning/src/ReinforcementLearning/survival.xlsx", true)); 
-		      w.println(accumuReward+" "+getRoundNum()+"\t"+losingRound+" "+0+" "+this.explorationRate); 
+		      w.println(accumuReward+" "+getRoundNum()+"\t"+losingFlag+" "+this.explorationRate); 
 		      if (w.checkError()) 
 		        System.out.println("Could not save the data!"); 
 		      w.close(); 
