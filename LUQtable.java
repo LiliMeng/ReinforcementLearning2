@@ -38,7 +38,7 @@ public class LUQTable {
 	
 	public double maxQValue(int state)
 	{
-		double maxQvalue = qTable[state][0];
+		double maxQvalue = Double.NEGATIVE_INFINITY;
 		
 		for(int i=0; i<qTable[state].length;i++)
 		{	
@@ -52,7 +52,7 @@ public class LUQTable {
 	
 	public int bestAction(int state)
 	{
-		double maxQvalue = qTable[state][0];
+		double maxQvalue = Double.NEGATIVE_INFINITY;
 		
 		int bestAct = 0;
 		for(int i=0; i<qTable[state].length; i++)
