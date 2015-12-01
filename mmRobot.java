@@ -18,24 +18,18 @@ import robocode.AdvancedRobot;
 
 public class mmRobot extends AdvancedRobot 
 {
-	private double winningRound;
-	private double losingRound;
-
+	
 	public static final double PI = Math.PI;
 	private Enemy enemy;
-	private static LUQTable qtable;
+	private static LUQTable qtable=new LUQTable();
 	private static QLearning learner; 
 	private double firePower; 
-	private int isHitWall = 0; 
-	private int isHitByBullet = 0; 
-	 
-	private double explorationRate=0.9;
 	
 	double accumuReward=0.0;
 	double currentReward=0.0;
 	
-	private static final double rewardForWin = 10;
-	private static final double rewardForDeath = -10; 
+	//private static final double rewardForWin = 10;
+	//private static final double rewardForDeath = -10; 
 	
 	private static final double rewardForHitRobot = -2; 
 	
@@ -48,7 +42,6 @@ public class mmRobot extends AdvancedRobot
 	
 	public void run() 
 	{   
-		qtable = new LUQTable();
 		loadData();
 		learner = new QLearning(qtable); 
 		enemy = new Enemy(); 
@@ -61,15 +54,13 @@ public class mmRobot extends AdvancedRobot
 	    setAdjustRadarForGunTurn(true); 
 	    turnRadarRightRadians(2 * PI); 
 	    
+	    if(getRoundNum()>500)
+	    {
+	    	  learner.explorationRate=0.01;
+	     }
+	    
 	    while (true) 
 	    { 
-	      
-	      if(getRoundNum()>500)
-	      {
-	    	  out.println("Before explorationRate"+this.explorationRate);
-	    	  explorationRate=0.01;
-	    	  out.println("After explorationRate"+this.explorationRate);
-	      }
 	      firePower = 400/enemy.distance;   
 	      if (firePower > 3)
 	      {
@@ -89,14 +80,13 @@ public class mmRobot extends AdvancedRobot
 	  { 
 
 	    int state = getState(); 
-	    
-	    int action = this.selectAction(state); 
+	
+	    int action = learner.selectAction(state); 
 	    out.println("RobotAction selected: " + action); 
-	    learner.learn(state, action, currentReward); 
+	    //learner.learnQ(state, action, currentReward); 
+	    learner.learnSARSA(state, action, currentReward);
 	    accumuReward+=currentReward;
 	    currentReward = 0.0; 
-	    isHitWall = 0; 
-	    isHitByBullet = 0; 
 	 
 	    switch (action) 
 	    { 
@@ -109,53 +99,16 @@ public class mmRobot extends AdvancedRobot
 	    	case RobotAction.AimAndFire:
 	    		aimAndFire();
 	    		break;
-	 		
-	    
-	    /*
-	      case RobotAction.Ahead: 
-	        setAhead(RobotAction.RobotMoveDistance); 
-	        break; 
-	      case RobotAction.Back: 
-	        setBack(RobotAction.RobotMoveDistance); 
-	        break; 
-	      case RobotAction.TurnLeftAhead: 
-	        setTurnLeft(RobotAction.RobotTurnDegree); 
-	        setAhead(RobotAction.RobotMoveDistance); 
-	        break; 
-	      case RobotAction.TurnRightAhead: 
-	        setTurnRight(RobotAction.RobotTurnDegree);
-	        setAhead(RobotAction.RobotMoveDistance); 
-	        break; 
-	   */
 	    } 
 	  } 
 	  
 		
-		public int selectAction(int state){
-
-			double thres = Math.random();
-			
-			int actionIndex = 0;
-			
-			if (thres<explorationRate)
-			{//randomly select one action from action(0,1,2,3)
-				Random ran = new Random();
-				actionIndex = ran.nextInt(((RobotAction.numRobotActions-1 - 0) + 1));
-			}
-			else
-			{//e-greedy
-				actionIndex=qtable.bestAction(state);
-			}
-			return actionIndex;
-		}
-	 
 	  private int getState() 
 	  { 
 	    int heading = RobotState.getHeading(getHeading()); 
 	    int enemyDistance = RobotState.getEnemyDistance(enemy.distance); 
 	    int enemyBearing = RobotState.getEnemyBearing(enemy.bearing); 
-	    out.println("State(" + heading + ", " + enemyDistance + ", " + enemyBearing + ", " + isHitWall + ", " + isHitByBullet + ")"); 
-	    int state = RobotState.mapping[heading][enemyDistance];//[enemyBearing][isHitWall][isHitByBullet]; 
+	    int state = RobotState.mapping[heading][enemyDistance];
 	    return state; 
 	  } 
 	 
@@ -175,7 +128,7 @@ public class mmRobot extends AdvancedRobot
 	    } 
 	    setTurnRadarLeftRadians(radarOffset); 
 	  } 
-	 
+	  ;
 	  private void aimAndFire() 
 	  { 
 	
@@ -192,7 +145,7 @@ public class mmRobot extends AdvancedRobot
 	    double gunOffset = getGunHeadingRadians() - (Math.PI/2 - Math.atan2(p.y - getY(),p.x -  getX())); 
 	    setTurnGunLeftRadians(NormaliseBearing(gunOffset)); 
 	    
-	  }
+	  }  
 	  
 	  void setupAntiGravityMove(double pForce)
 	  {
@@ -315,7 +268,7 @@ public class mmRobot extends AdvancedRobot
 	  } 
 	 
 	  public void onBulletHit(BulletHitEvent e) 
-	  { 
+	  {
 	    if (enemy.name == e.getName()) 
 	    { 
 	      currentReward=rewardForBulletHit;
@@ -328,7 +281,7 @@ public class mmRobot extends AdvancedRobot
 	    { 
 	      currentReward=rewardForHitByBullet;
 	    } 
-	    isHitByBullet = 1; 
+	
 	  } 
 	 
 	  public void onHitRobot(HitRobotEvent e) 
@@ -342,9 +295,8 @@ public class mmRobot extends AdvancedRobot
 	  public void onHitWall(HitWallEvent e) 
 	  { 
 		currentReward=rewardForHitWall;
-	    isHitWall = 1; 
 	  } 
-	 
+
 	  public void onScannedRobot(ScannedRobotEvent e) 
 	  { 
 	    if ((e.getDistance() < enemy.distance)||(enemy.name == e.getName())) 
@@ -366,35 +318,6 @@ public class mmRobot extends AdvancedRobot
 	      enemy.energy = e.getEnergy(); 
 	    } 
 	  } 
-	  
-	  /*
-		public void saveQTable()
-		{
-			try 
-			{
-				if(fw==null)
-				{ 
-					fw = new FileWriter(new File("/home/lili/workspace/EECE592/ReinforcementLearning/src/ReinforcementLearning/myQtable.txt"));
-				}
-		
-				for(int i=0; i<RobotState.numStates; i++)
-				{
-					for(int j=0; j<RobotAction.numRobotActions; j++)
-					{
-						fw.write("state:  "+i+"  action:   "+j+"  Qvalue   "+Double.toString(qtable.getQValue(i,j)));
-						fw.write("\r\n");
-					}
-				}
-				fw.close();
-			 }
-			catch (IOException ex) 
-			{
-				
-	            ex.printStackTrace();
-
-	        }
-	    }*/
-		
 	 
 	  public void onRobotDeath(RobotDeathEvent e) 
 	  {
@@ -405,15 +328,10 @@ public class mmRobot extends AdvancedRobot
 
 	  public void onWin(WinEvent event) 
 	  { 
-		 winningRound++; 
-		 currentReward=rewardForWin;
-		 //saveQTable();
+		 //currentReward=rewardForWin;
+		
 		saveData();
 		 
-		 int state=RobotState.mapping[0][0];
-		 
-		 int action =2;
-		 learner.learn(state, action, currentReward);
 		 
 		 int winningFlag=7;
 
@@ -421,7 +339,7 @@ public class mmRobot extends AdvancedRobot
 		    try 
 		    { 
 		      w = new PrintStream(new RobocodeFileOutputStream("/home/lili/workspace/EECE592/ReinforcementLearning/src/ReinforcementLearning/survival.xlsx", true)); 
-		      w.println(accumuReward+" "+getRoundNum()+"\t"+winningFlag+" "+" "+this.explorationRate); 
+		      w.println(accumuReward+" "+getRoundNum()+"\t"+winningFlag+" "+" "+learner.explorationRate); 
 		      if (w.checkError()) 
 		        System.out.println("Could not save the data!"); 
 		      w.close(); 
@@ -441,24 +359,23 @@ public class mmRobot extends AdvancedRobot
 		      { 
 		        System.out.println("Exception trying to close witer: " + e); 
 		      } 
+
 		    } 
 		  }  
 
 	  public void onDeath(DeathEvent event) 
 	  { 
-		 int state=RobotState.mapping[0][0];
-		 int action =2;
-	     losingRound++;
-	     currentReward=rewardForDeath;
-	     //saveQTable();
+		
+	    // currentReward=rewardForDeath;
+	  
 	     saveData();
-	    // learner.learn(state, action, currentReward);
+	   
 	     int losingFlag=5;
 	     PrintStream w = null; 
 		    try 
 		    { 
 		      w = new PrintStream(new RobocodeFileOutputStream("/home/lili/workspace/EECE592/ReinforcementLearning/src/ReinforcementLearning/survival.xlsx", true)); 
-		      w.println(accumuReward+" "+getRoundNum()+"\t"+losingFlag+" "+this.explorationRate); 
+		      w.println(accumuReward+" "+getRoundNum()+"\t"+losingFlag+" "+learner.explorationRate); 
 		      if (w.checkError()) 
 		        System.out.println("Could not save the data!"); 
 		      w.close(); 
@@ -471,6 +388,7 @@ public class mmRobot extends AdvancedRobot
 		    { 
 		      try 
 		      { 
+
 		        if (w != null) 
 		          w.close(); 
 		      } 
