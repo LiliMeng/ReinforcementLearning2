@@ -28,12 +28,11 @@ public class mmRobot extends AdvancedRobot
 	double accumuReward=0.0;
 	double currentReward=0.0;
 	
-	//private static final double rewardForWin = 10;
-	//private static final double rewardForDeath = -10; 
 	
 	private static final double rewardForHitRobot = -2; 
 	
-	private static final double rewardForBulletHit = 3;
+	private static final double rewardForBulletHit = 5;
+	
 	private static final double rewardForHitByBullet = -2; 
 	
 	private static final double rewardForHitWall = -2; 
@@ -83,8 +82,8 @@ public class mmRobot extends AdvancedRobot
 	
 	    int action = learner.selectAction(state); 
 	    out.println("RobotAction selected: " + action); 
-	    //learner.learnQ(state, action, currentReward); 
-	    learner.learnSARSA(state, action, currentReward);
+	    learner.learnQ(state, action, currentReward); 
+	    //learner.learnSARSA(state, action, currentReward);
 	    accumuReward+=currentReward;
 	    currentReward = 0.0; 
 	 
@@ -107,7 +106,6 @@ public class mmRobot extends AdvancedRobot
 	  { 
 	    int heading = RobotState.getHeading(getHeading()); 
 	    int enemyDistance = RobotState.getEnemyDistance(enemy.distance); 
-	    int enemyBearing = RobotState.getEnemyBearing(enemy.bearing); 
 	    int state = RobotState.mapping[heading][enemyDistance];
 	    return state; 
 	  } 
@@ -283,7 +281,7 @@ public class mmRobot extends AdvancedRobot
 	    } 
 	
 	  } 
-	 
+	  
 	  public void onHitRobot(HitRobotEvent e) 
 	  { 
 	    if (enemy.name == e.getName()) 
@@ -318,7 +316,7 @@ public class mmRobot extends AdvancedRobot
 	      enemy.energy = e.getEnergy(); 
 	    } 
 	  } 
-	 
+	
 	  public void onRobotDeath(RobotDeathEvent e) 
 	  {
 	 
@@ -328,7 +326,6 @@ public class mmRobot extends AdvancedRobot
 
 	  public void onWin(WinEvent event) 
 	  { 
-		 //currentReward=rewardForWin;
 		
 		saveData();
 		 
@@ -338,7 +335,7 @@ public class mmRobot extends AdvancedRobot
 		 PrintStream w = null; 
 		    try 
 		    { 
-		      w = new PrintStream(new RobocodeFileOutputStream("/home/lili/workspace/EECE592/ReinforcementLearning/src/ReinforcementLearning/survival.xlsx", true)); 
+		      w = new PrintStream(new RobocodeFileOutputStream("/home/lili/workspace/EECE592/ReinforcementLearning/src/ReinforcementLearning/survival1130q.xlsx", true)); 
 		      w.println(accumuReward+" "+getRoundNum()+"\t"+winningFlag+" "+" "+learner.explorationRate); 
 		      if (w.checkError()) 
 		        System.out.println("Could not save the data!"); 
@@ -374,7 +371,7 @@ public class mmRobot extends AdvancedRobot
 	     PrintStream w = null; 
 		    try 
 		    { 
-		      w = new PrintStream(new RobocodeFileOutputStream("/home/lili/workspace/EECE592/ReinforcementLearning/src/ReinforcementLearning/survival.xlsx", true)); 
+		      w = new PrintStream(new RobocodeFileOutputStream("/home/lili/workspace/EECE592/ReinforcementLearning/src/ReinforcementLearning/survival1130q.xlsx", true)); 
 		      w.println(accumuReward+" "+getRoundNum()+"\t"+losingFlag+" "+learner.explorationRate); 
 		      if (w.checkError()) 
 		        System.out.println("Could not save the data!"); 
