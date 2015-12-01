@@ -12,7 +12,7 @@ public class QLearning
 	private int lastState;
 	private int lastAction;
 	private LUQTable Qtable;
-	private boolean first = true;   
+
 
 	public QLearning(LUQTable table)
 	{
@@ -21,18 +21,13 @@ public class QLearning
 
 	public void learnQ(int state, int action, double reward)
 	{  
-		 if (first)   
-		 {
-			 first = false;  
-		 }
-		 else   
-		 {   
+	
 		   double oldQValue = Qtable.getQValue(lastState, lastAction);
 		   double newQValue = oldQValue + LearningRate * (reward+ DiscountRate * Qtable.maxQValue(state)-oldQValue);
 	    
 		   //update the Q value in the look up table
 		   Qtable.setQValue(lastState, lastAction, newQValue);
-		 }
+		
 		
 		//update state and action
 		lastState = state;
@@ -40,22 +35,17 @@ public class QLearning
 	}
 	
 	  public void learnSARSA(int state, int action, double reward) {
-			if (first)
-			{
-				first = false;
-			}
-			else 
-			{
+			
 				double oldQValue = Qtable.getQValue(lastState, lastAction);
 				
 				double newQValue = (1 - LearningRate) * oldQValue
 						+ LearningRate * (reward + DiscountRate * Qtable.getQValue(state, action));
 				
 				Qtable.setQValue(lastState, lastAction, newQValue);
-			}
+			
 			lastState = state;
 			lastAction = action;
-		}
+	  }
 	
 	public int selectAction(int state)
 	{
